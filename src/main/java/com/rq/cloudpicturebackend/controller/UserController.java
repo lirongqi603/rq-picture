@@ -89,7 +89,7 @@ public class UserController {
     @PostMapping("/delete")
     @ApiOperation(value = "用户删除")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> userUpdate(@RequestBody DeletedRequest deletedRequest) {
+    public BaseResponse<Boolean> userDelete(@RequestBody DeletedRequest deletedRequest) {
         if (deletedRequest == null || deletedRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "参数错误");
         }
