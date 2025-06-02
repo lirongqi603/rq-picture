@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.rq.cloudpicturebackend.model.dto.user.*;
 import com.rq.cloudpicturebackend.model.entity.User;
+import com.rq.cloudpicturebackend.model.vo.UserInfoVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 import com.rq.cloudpicturebackend.model.vo.UserQueryListVo;
 
@@ -77,4 +78,11 @@ public interface UserService extends IService<User> {
      * @return 用户列表
      */
     IPage<UserQueryListVo> queryUserList(Page<User> page, UserQueryRequest userQueryRequest);
+
+    /**
+     * 获取用户详情
+     * @param id 用户id
+     * @return 用户详情
+     */
+    UserInfoVo getUserInfoById(Long id);
 }

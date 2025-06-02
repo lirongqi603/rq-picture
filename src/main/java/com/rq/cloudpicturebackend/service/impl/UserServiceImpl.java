@@ -11,6 +11,7 @@ import com.rq.cloudpicturebackend.exception.BusinessException;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.model.dto.user.*;
 import com.rq.cloudpicturebackend.model.entity.User;
+import com.rq.cloudpicturebackend.model.vo.UserInfoVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 import com.rq.cloudpicturebackend.model.vo.UserQueryListVo;
 import com.rq.cloudpicturebackend.service.UserService;
@@ -205,9 +206,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return this.updateById(user);
     }
 
+    /**
+     * 用户列表查询
+     *
+     * @param page             分页
+     * @param userQueryRequest 查询参数
+     * @return 用户列表
+     */
     @Override
     public IPage<UserQueryListVo> queryUserList(Page<User> page, UserQueryRequest userQueryRequest) {
         return userMapper.queryUserList(page, userQueryRequest);
+    }
+
+    /**
+     * 获取用户详情
+     *
+     * @param id 用户id
+     * @return 用户详情
+     */
+    @Override
+    public UserInfoVo getUserInfoById(Long id) {
+        if (id == null || id <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求参数为空");
+        }
+        User user = this.getById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
+        return BeanUtil.copyProperties(user, UserInfoVo.class);
     }
 
     /**

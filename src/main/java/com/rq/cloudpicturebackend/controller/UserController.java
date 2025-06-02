@@ -11,6 +11,7 @@ import com.rq.cloudpicturebackend.exception.BusinessException;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.model.dto.user.*;
 import com.rq.cloudpicturebackend.model.entity.User;
+import com.rq.cloudpicturebackend.model.vo.UserInfoVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 import com.rq.cloudpicturebackend.model.vo.UserQueryListVo;
 import com.rq.cloudpicturebackend.service.UserService;
@@ -107,5 +108,13 @@ public class UserController {
         Page<User> page = new Page<>(userQueryRequest.getCurrent(), userQueryRequest.getPageSize());
         IPage<UserQueryListVo> pageList = userService.queryUserList(page, userQueryRequest);
         return ResultUtils.success(pageList);
+    }
+
+    @GetMapping("/getInfo/{id}")
+    @ApiOperation(value = "获取用户详情", response = UserInfoVo.class)
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<UserInfoVo> getInfo(@PathVariable("id") Long id) {
+        UserInfoVo vo = userService.getUserInfoById(id);
+        return ResultUtils.success(vo);
     }
 }
