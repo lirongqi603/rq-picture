@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.rq.cloudpicturebackend.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.rq.cloudpicturebackend.model.entity.User">
+        <id property="id" column="id" jdbcType="BIGINT"/>
+        <result property="userAccount" column="userAccount" jdbcType="VARCHAR"/>
+        <result property="userPassword" column="userPassword" jdbcType="VARCHAR"/>
+        <result property="userName" column="userName" jdbcType="VARCHAR"/>
+        <result property="userAvatar" column="userAvatar" jdbcType="VARCHAR"/>
+        <result property="userProfile" column="userProfile" jdbcType="VARCHAR"/>
+        <result property="userRole" column="userRole" jdbcType="VARCHAR"/>
+        <result property="editTime" column="editTime" jdbcType="TIMESTAMP"/>
+        <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
+        <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
+        <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <select id="queryUserList" resultType="com.rq.cloudpicturebackend.model.vo.UserQueryListVo">
+        select id,
+        userAccount,
+        userName,
+        userAvatar,
+        userProfile,
+        userRole,
+        createTime
+        from user
+        <where>
+            isDelete = 0
+            <if test="userQueryRequest.userAccount != null and userQueryRequest.userAccount != ''">
+                and userAccount like concat('%', #{userQueryRequest.userAccount}, '%')
+            </if>
+            <if test="userQueryRequest.userName != null and userQueryRequest.userName != ''">
+                and userName like concat('%', #{userQueryRequest.userName}, '%')
+            </if>
+        </where>
+        <if test="userQueryRequest.sortField != null and userQueryRequest.sortField != ''">
+            order by ${userQueryRequest.sortField} ${userQueryRequest.sortOrder}
+        </if>
+    </select>
+</mapper>
