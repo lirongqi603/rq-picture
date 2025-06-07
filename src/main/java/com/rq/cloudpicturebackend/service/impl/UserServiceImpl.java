@@ -261,6 +261,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (userAccount.length() < 4 || userAccount.length() > 16) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "账号长度不在4-16范围内");
         }
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper.eq("userAccount", userAccount);
+        if (isUpdate) {
+            userQueryWrapper.ne("id", user.getId());
+        }
+        long count = this.count(userQueryWrapper);
+        if (count > 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户账号已存在");
+        }
         String userName = user.getUserName();
         if (StrUtil.isBlank(userName)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "用户昵称不能为空");
