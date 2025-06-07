@@ -251,6 +251,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (id == null || id < 0) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "用户id为空");
             }
+        } else {
+            user.setUserPassword(getEncryptPassword("12345678"));
         }
         String userAccount = user.getUserAccount();
         if (StrUtil.isBlank(userAccount)) {
@@ -267,12 +269,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAM_ERROR, "用户昵称长度大于20");
         }
         String userAvatar = user.getUserAvatar();
-        if (userAvatar.length() > 500) {
+        if (StrUtil.isNotBlank(userAvatar) && userAvatar.length() > 500) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "用户头像长度大于500");
         }
         String userProfile = user.getUserProfile();
-        if (userProfile.length() > 300) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户简介长度大于500");
+        if (StrUtil.isNotBlank(userProfile) && userProfile.length() > 300) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户简介长度大于300");
         }
         String userRole = user.getUserRole();
         if (StrUtil.isBlank(userRole)) {

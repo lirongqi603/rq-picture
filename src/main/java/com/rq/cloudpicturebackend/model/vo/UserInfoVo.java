@@ -49,12 +49,4 @@ public class UserInfoVo implements Serializable {
     @ApiModelProperty(value = "用户角色：user/admin", position = 6)
     private String userRole;
 
-    /**
-     * 创建时间
-     */
-    @ApiModelProperty(value = "创建时间", position = 7)
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date createTime;
-
-
 }
