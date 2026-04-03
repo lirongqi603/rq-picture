@@ -1,11 +1,81 @@
 package com.rq.cloudpicturebackend.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rq.cloudpicturebackend.model.dto.picture.PictureEditRequest;
+import com.rq.cloudpicturebackend.model.dto.picture.PictureQueryRequest;
+import com.rq.cloudpicturebackend.model.dto.picture.PictureUpdateRequest;
+import com.rq.cloudpicturebackend.model.dto.picture.PictureUploadRequest;
 import com.rq.cloudpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.rq.cloudpicturebackend.model.entity.User;
+import com.rq.cloudpicturebackend.model.vo.PictureVo;
+import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 图片服务
  */
 public interface PictureService extends IService<Picture> {
+
+    /**
+     * 上传图片
+     *
+     * @param multipartFile        图片文件
+     * @param pictureUploadRequest 图片上传请求
+     * @param loginUser            登录用户
+     * @return 图片上传结果
+     */
+    PictureVo uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, UserLoginVo loginUser);
+
+    /**
+     * 修改图片
+     *
+     * @param pictureUpdateRequest 图片修改请求
+     * @return 修改结果
+     */
+    boolean updatePicture(PictureUpdateRequest pictureUpdateRequest);
+
+    /**
+     * 编辑图片
+     *
+     * @param pictureEditRequest 图片编辑请求
+     * @param loginUser          登录用户
+     * @return 编辑结果
+     */
+    boolean editPicture(PictureEditRequest pictureEditRequest, UserLoginVo loginUser);
+
+    /**
+     * 删除图片
+     *
+     * @param id        图片ID
+     * @param loginUser 登录用户
+     * @return 删除结果
+     */
+    boolean deletePicture(Long id, UserLoginVo loginUser);
+
+    /**
+     * 分页查询图片
+     *
+     * @param pictureQueryRequest 图片查询请求
+     * @return 图片分页结果
+     */
+    Page<Picture> listPagePictures(PictureQueryRequest pictureQueryRequest);
+
+    /**
+     * 分页查询图片VO
+     *
+     * @param pictureQueryRequest 图片查询请求
+     * @param loginUser           登录用户
+     * @return 图片VO分页结果
+     */
+    Page<PictureVo> listPagePictureVos(PictureQueryRequest pictureQueryRequest, UserLoginVo loginUser);
+
+    /**
+     * 获取图片VO
+     *
+     * @param picture 图片实体
+     * @return 图片VO
+     */
+    PictureVo getPictureVo(Picture picture);
 
 }

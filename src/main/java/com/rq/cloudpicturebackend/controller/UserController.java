@@ -25,14 +25,12 @@ import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/user")
-@Api(tags = "用户管理")
 public class UserController {
 
     @Resource
     private UserService userService;
 
     @PostMapping("/register")
-    @ApiOperation(value = "用户注册")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请求参数不能为空");
@@ -42,7 +40,6 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    @ApiOperation(value = "用户登录", response = UserLoginVo.class)
     public BaseResponse<UserLoginVo> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请求参数不能为空");
@@ -52,21 +49,18 @@ public class UserController {
     }
 
     @GetMapping("/get/login")
-    @ApiOperation(value = "获取当前登录用户信息", response = UserLoginVo.class)
     public BaseResponse<UserLoginVo> getUserLogin(HttpServletRequest request) {
         UserLoginVo userLoginVo = userService.getLoginUser(request);
         return ResultUtils.success(userLoginVo);
     }
 
     @PostMapping("/logout")
-    @ApiOperation(value = "用户退出登录")
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
         userService.userLogout(request);
         return ResultUtils.success(true);
     }
 
     @PostMapping("/add")
-    @ApiOperation(value = "用户新增")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> userAdd(@RequestBody UserAddRequest userAddRequest) {
         Boolean result = userService.addUser(userAddRequest);
@@ -77,7 +71,6 @@ public class UserController {
     }
 
     @PostMapping("/update")
-    @ApiOperation(value = "用户修改")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> userUpdate(@RequestBody UserUpdateRequest userUpdateRequest) {
         Boolean result = userService.updateUser(userUpdateRequest);
@@ -88,7 +81,6 @@ public class UserController {
     }
 
     @PostMapping("/delete")
-    @ApiOperation(value = "用户删除")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> userDelete(@RequestBody DeletedRequest deletedRequest) {
         if (deletedRequest == null || deletedRequest.getId() <= 0) {
@@ -102,7 +94,6 @@ public class UserController {
     }
 
     @PostMapping("/list")
-    @ApiOperation(value = "用户列表", response = UserQueryListVo.class)
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<IPage<UserQueryListVo>> userList(@RequestBody UserQueryRequest userQueryRequest) {
         Page<User> page = new Page<>(userQueryRequest.getCurrent(), userQueryRequest.getPageSize());
@@ -111,7 +102,6 @@ public class UserController {
     }
 
     @GetMapping("/getInfo/{id}")
-    @ApiOperation(value = "获取用户详情", response = UserInfoVo.class)
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<UserInfoVo> getInfo(@PathVariable("id") Long id) {
         UserInfoVo vo = userService.getUserInfoById(id);

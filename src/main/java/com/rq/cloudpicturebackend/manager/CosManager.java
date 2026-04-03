@@ -32,7 +32,6 @@ public class CosManager {
      */
     public PutObjectResult putObject(String key, File file) {
         PutObjectRequest putObjectRequest = new PutObjectRequest(cosClientConfig.getBucket(), key, file);
-        PicOperations picOperations = new PicOperations();
         return cosClient.putObject(putObjectRequest);
     }
 
@@ -46,4 +45,17 @@ public class CosManager {
         return cosClient.getObject(getObjectRequest);
     }
 
+    /**
+     * 上传图片
+     *
+     * @param key  唯一键
+     * @param file 文件
+     */
+    public PutObjectResult putPictureObject(String key, File file) {
+        PutObjectRequest putObjectRequest = new PutObjectRequest(cosClientConfig.getBucket(), key, file);
+        PicOperations picOperations = new PicOperations();
+        picOperations.setIsPicInfo(1);
+        putObjectRequest.setPicOperations(picOperations);
+        return cosClient.putObject(putObjectRequest);
+    }
 }

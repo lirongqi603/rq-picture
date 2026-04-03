@@ -5,8 +5,6 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.COSObjectInputStream;
-import com.qcloud.cos.model.PutObjectResult;
-import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
 import com.qcloud.cos.utils.IOUtils;
 import com.rq.cloudpicturebackend.annotation.AuthCheck;
 import com.rq.cloudpicturebackend.common.BaseResponse;
@@ -18,8 +16,6 @@ import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.manager.CosManager;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 import com.rq.cloudpicturebackend.service.UserService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,7 +32,6 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/file")
 @Slf4j
-@Api(tags = "文件上传")
 public class FileController {
 
     @Resource
@@ -50,7 +45,6 @@ public class FileController {
      * 测试文件上传接口
      */
     @PostMapping("/upload")
-    @ApiOperation(value = "文件上传接口")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<String> testUploadFile(@RequestPart(value = "file") MultipartFile multipartFile) {
         if (multipartFile == null) {
@@ -92,7 +86,6 @@ public class FileController {
      * 用户头像上传接口
      */
     @PostMapping("/uploadAvatar")
-    @ApiOperation(value = "文件上传接口-用户头像")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<String> uploadAvatar(@RequestPart(value = "file") MultipartFile multipartFile, HttpServletRequest request) {
         if (multipartFile == null) {
@@ -125,7 +118,7 @@ public class FileController {
             if (file != null) {
                 boolean result = file.delete();
                 if (!result) {
-                    log.error("临时文件删除失败");
+                    log.error("临时文件删除失败,filePath = " + file.getAbsolutePath());
                 }
             }
         }

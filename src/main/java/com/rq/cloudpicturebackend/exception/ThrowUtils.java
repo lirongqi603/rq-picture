@@ -25,7 +25,7 @@ public class ThrowUtils {
      * @param errorCode 自定义异常
      */
     public static void throwIf(boolean condition, ErrorCode errorCode) {
-        throwIf(condition, errorCode);
+        throwIf(condition, errorCode, errorCode.getMessage());
     }
 
     /**
