@@ -86,4 +86,22 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
      */
     @ApiModelProperty(value = "图片格式", position = 12)
     private String picFormat;
+
+    /**
+     * 审核状态：0-待审核; 1-通过; 2-拒绝
+     */
+    @ApiModelProperty(value = "审核状态", position = 13)
+    private Integer reviewStatus;
+
+    /**
+     * 审核信息
+     */
+    @ApiModelProperty(value = "审核信息", position = 14)
+    private String reviewMessage;
+
+    /**
+     * 审核人 ID
+     */
+    @ApiModelProperty(value = "审核人 ID", position = 15)
+    private Long reviewerId;
 }

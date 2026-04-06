@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.enums.UserRoleEnum;
 import com.rq.cloudpicturebackend.exception.BusinessException;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
@@ -234,6 +235,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         }
         return BeanUtil.copyProperties(user, UserInfoVo.class);
+    }
+
+    @Override
+    public boolean isAdmin(UserLoginVo loginUser) {
+        return loginUser != null && UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
     }
 
     /**

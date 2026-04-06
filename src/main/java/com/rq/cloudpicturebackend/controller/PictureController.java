@@ -8,10 +8,7 @@ import com.rq.cloudpicturebackend.common.ResultUtils;
 import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.exception.ThrowUtils;
-import com.rq.cloudpicturebackend.model.dto.picture.PictureEditRequest;
-import com.rq.cloudpicturebackend.model.dto.picture.PictureQueryRequest;
-import com.rq.cloudpicturebackend.model.dto.picture.PictureUpdateRequest;
-import com.rq.cloudpicturebackend.model.dto.picture.PictureUploadRequest;
+import com.rq.cloudpicturebackend.model.dto.picture.*;
 import com.rq.cloudpicturebackend.model.entity.Picture;
 import com.rq.cloudpicturebackend.model.vo.PictureTagCategory;
 import com.rq.cloudpicturebackend.model.vo.PictureVo;
@@ -57,7 +54,8 @@ public class PictureController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updatePicture(@RequestBody PictureUpdateRequest pictureUpdateRequest,
                                                HttpServletRequest request) {
-        boolean result = pictureService.updatePicture(pictureUpdateRequest);
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        boolean result = pictureService.updatePicture(pictureUpdateRequest,loginUser);
         return ResultUtils.success(result);
     }
 
@@ -100,8 +98,8 @@ public class PictureController {
     @PostMapping("/list/pageVo")
     public BaseResponse<Page<PictureVo>> listPagePictureVos(@RequestBody PictureQueryRequest pictureQueryRequest,
                                                             HttpServletRequest request) {
-        UserLoginVo loginUser = userService.getLoginUser(request);
-        Page<PictureVo> pictureVoPage = pictureService.listPagePictureVos(pictureQueryRequest, loginUser);
+//        UserLoginVo loginUser = userService.getLoginUser(request);
+        Page<PictureVo> pictureVoPage = pictureService.listPagePictureVos(pictureQueryRequest);
         return ResultUtils.success(pictureVoPage);
     }
 
@@ -137,6 +135,17 @@ public class PictureController {
         pictureTagCategory.setTagList(tagList);
         pictureTagCategory.setCategoryList(categoryList);
         return ResultUtils.success(pictureTagCategory);
+    }
+
+    /**
+     * 图片审核
+     */
+    @PostMapping("/reviewPicture")
+    public BaseResponse<Boolean> reviewPicture(@RequestBody PictureReviewRequest pictureQueryRequest,
+                                               HttpServletRequest request) {
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        pictureService.reviewPicture(pictureQueryRequest, loginUser);
+        return ResultUtils.success(true);
     }
 
 }

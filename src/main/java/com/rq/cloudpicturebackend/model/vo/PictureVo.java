@@ -3,6 +3,8 @@ package com.rq.cloudpicturebackend.model.vo;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSON;
 import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rq.cloudpicturebackend.model.entity.Picture;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -98,19 +100,48 @@ public class PictureVo implements Serializable {
      * 创建时间
      */
     @ApiModelProperty(value = "创建时间", position = 13)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
 
     /**
      * 编辑时间
      */
     @ApiModelProperty(value = "编辑时间", position = 14)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date editTime;
 
     /**
      * 更新时间
      */
     @ApiModelProperty(value = "更新时间", position = 15)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date updateTime;
+
+    /**
+     * 审核状态：0-待审核; 1-通过; 2-拒绝
+     */
+    @ApiModelProperty(value = "审核状态：0-待审核; 1-通过; 2-拒绝", position = 16)
+    private Integer reviewStatus;
+
+    /**
+     * 审核信息
+     */
+    @ApiModelProperty(value = "审核信息", position = 17)
+    private String reviewMessage;
+
+    /**
+     * 审核人 ID
+     */
+    @ApiModelProperty(value = "审核人 ID", position = 18)
+    private Long reviewerId;
+
+    /**
+     * 审核时间
+     */
+    @ApiModelProperty(value = "审核时间", position = 19)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private Date reviewTime;
+
 
     /**
      * 封装类转对象

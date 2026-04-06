@@ -1,10 +1,7 @@
 package com.rq.cloudpicturebackend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.rq.cloudpicturebackend.model.dto.picture.PictureEditRequest;
-import com.rq.cloudpicturebackend.model.dto.picture.PictureQueryRequest;
-import com.rq.cloudpicturebackend.model.dto.picture.PictureUpdateRequest;
-import com.rq.cloudpicturebackend.model.dto.picture.PictureUploadRequest;
+import com.rq.cloudpicturebackend.model.dto.picture.*;
 import com.rq.cloudpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.rq.cloudpicturebackend.model.entity.User;
@@ -31,9 +28,10 @@ public interface PictureService extends IService<Picture> {
      * 修改图片
      *
      * @param pictureUpdateRequest 图片修改请求
+     * @param loginUser 用户信息
      * @return 修改结果
      */
-    boolean updatePicture(PictureUpdateRequest pictureUpdateRequest);
+    boolean updatePicture(PictureUpdateRequest pictureUpdateRequest,UserLoginVo loginUser);
 
     /**
      * 编辑图片
@@ -65,10 +63,9 @@ public interface PictureService extends IService<Picture> {
      * 分页查询图片VO
      *
      * @param pictureQueryRequest 图片查询请求
-     * @param loginUser           登录用户
      * @return 图片VO分页结果
      */
-    Page<PictureVo> listPagePictureVos(PictureQueryRequest pictureQueryRequest, UserLoginVo loginUser);
+    Page<PictureVo> listPagePictureVos(PictureQueryRequest pictureQueryRequest);
 
     /**
      * 获取图片VO
@@ -77,5 +74,13 @@ public interface PictureService extends IService<Picture> {
      * @return 图片VO
      */
     PictureVo getPictureVo(Picture picture);
+
+    /**
+     * 图片审核
+     *
+     * @param pictureQueryRequest 请求
+     * @param loginUser 用户
+     */
+    void reviewPicture(PictureReviewRequest pictureQueryRequest, UserLoginVo loginUser);
 
 }

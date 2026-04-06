@@ -85,4 +85,13 @@ public interface UserService extends IService<User> {
      * @return 用户详情
      */
     UserInfoVo getUserInfoById(Long id);
+
+
+    /**
+     * 是否是管理员
+     * @param loginUser
+     * @return
+     */
+    boolean isAdmin(UserLoginVo loginUser);
+
 }
