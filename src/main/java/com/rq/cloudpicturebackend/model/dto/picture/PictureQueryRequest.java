@@ -104,4 +104,16 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
      */
     @ApiModelProperty(value = "审核人 ID", position = 15)
     private Long reviewerId;
+
+    /**
+     * 排序字段
+     */
+    @ApiModelProperty(value = "排序字段", position = 16)
+    private String sortField;
+
+    /**
+     * 排序方式
+     */
+    @ApiModelProperty(value = "排序方式", position = 17)
+    private String sortOrder = "asc";
 }

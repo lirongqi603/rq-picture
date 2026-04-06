@@ -1,5 +1,6 @@
 package com.rq.cloudpicturebackend.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.rq.cloudpicturebackend.annotation.AuthCheck;
 import com.rq.cloudpicturebackend.common.BaseResponse;
@@ -8,6 +9,8 @@ import com.rq.cloudpicturebackend.common.ResultUtils;
 import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.exception.ThrowUtils;
+import com.rq.cloudpicturebackend.model.dto.picture.BatchUploadPictureRequest;
+import com.rq.cloudpicturebackend.model.dto.picture.UploadPictureRequest;
 import com.rq.cloudpicturebackend.model.dto.picture.*;
 import com.rq.cloudpicturebackend.model.entity.Picture;
 import com.rq.cloudpicturebackend.model.vo.PictureTagCategory;
@@ -42,7 +45,8 @@ public class PictureController {
                                                  PictureUploadRequest pictureUploadRequest,
                                                  HttpServletRequest request) {
         UserLoginVo loginUser = userService.getLoginUser(request);
-        PictureVo pictureVo = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser);
+        Boolean ignoreSize = false;
+        PictureVo pictureVo = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser, ignoreSize);
         return ResultUtils.success(pictureVo);
     }
 
@@ -55,7 +59,7 @@ public class PictureController {
     public BaseResponse<Boolean> updatePicture(@RequestBody PictureUpdateRequest pictureUpdateRequest,
                                                HttpServletRequest request) {
         UserLoginVo loginUser = userService.getLoginUser(request);
-        boolean result = pictureService.updatePicture(pictureUpdateRequest,loginUser);
+        boolean result = pictureService.updatePicture(pictureUpdateRequest, loginUser);
         return ResultUtils.success(result);
     }
 
@@ -148,4 +152,28 @@ public class PictureController {
         return ResultUtils.success(true);
     }
 
+    /**
+     * 通过url获取图片信息并上传图片返回图片信息
+     */
+    @PostMapping("/uploadByUrl")
+    public BaseResponse<PictureVo> uploadPictureByUrl(@RequestBody UploadPictureRequest uploadPictureRequest, HttpServletRequest request) {
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(uploadPictureRequest == null || uploadPictureRequest.getUrl() == null, ErrorCode.PARAM_ERROR);
+        PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+        BeanUtil.copyProperties(uploadPictureRequest, pictureUploadRequest);
+        Boolean ignoreSize = false;
+        PictureVo pictureVo = pictureService.uploadPicture(uploadPictureRequest.getUrl(), pictureUploadRequest, loginUser, ignoreSize);
+        return ResultUtils.success(pictureVo);
+    }
+
+    /**
+     * 批量获取图片
+     */
+    @PostMapping("/batchUploadPicture")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Integer> batchUploadPicture(@RequestBody BatchUploadPictureRequest batchUploadPictureRequest, HttpServletRequest request) {
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        Integer cnt = pictureService.batchUploadPicture(batchUploadPictureRequest, loginUser);
+        return ResultUtils.success(cnt);
+    }
 }

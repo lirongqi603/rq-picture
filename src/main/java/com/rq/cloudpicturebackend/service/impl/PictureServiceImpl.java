@@ -2,6 +2,8 @@ package com.rq.cloudpicturebackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -13,6 +15,9 @@ import com.rq.cloudpicturebackend.enums.ReviewStatusEnum;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.exception.ThrowUtils;
 import com.rq.cloudpicturebackend.manager.FileManager;
+import com.rq.cloudpicturebackend.manager.upload.FileUploadPictureImpl;
+import com.rq.cloudpicturebackend.manager.upload.UploadPictureTemplate;
+import com.rq.cloudpicturebackend.manager.upload.UrlUploadPictureImpl;
 import com.rq.cloudpicturebackend.mapper.PictureMapper;
 import com.rq.cloudpicturebackend.model.dto.file.UploadPictureResult;
 import com.rq.cloudpicturebackend.model.dto.picture.*;
@@ -23,10 +28,12 @@ import com.rq.cloudpicturebackend.model.vo.UserInfoVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 import com.rq.cloudpicturebackend.service.PictureService;
 import com.rq.cloudpicturebackend.service.UserService;
+import com.rq.cloudpicturebackend.utill.BingImageByOffset;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,15 +42,18 @@ import java.util.stream.Collectors;
  * 图片服务实现类
  */
 @Service
+@Slf4j
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> implements PictureService {
 
     @Resource
-    private FileManager fileManager;
+    private FileUploadPictureImpl fileUploadPicture;
+    @Resource
+    private UrlUploadPictureImpl urlUploadPicture;
     @Resource
     private UserService userService;
 
     @Override
-    public PictureVo uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, UserLoginVo loginUser) {
+    public PictureVo uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, UserLoginVo loginUser, Boolean ignoreSize) {
         //校验参数
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_AUTH_ERROR);
         //判断是新增还是删除
@@ -56,10 +66,29 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             ThrowUtils.throwIf(!exists, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
         }
         String uploadPathPrefix = String.format("public/%s", loginUser.getId());
-        UploadPictureResult uploadPictureResult = fileManager.uploadPicture(multipartFile, uploadPathPrefix);
+        UploadPictureTemplate uploadPictureTemplate = fileUploadPicture;
+        if (inputSource instanceof String) {
+            uploadPictureTemplate = urlUploadPicture;
+        }
+        UploadPictureResult uploadPictureResult = uploadPictureTemplate.uploadPicture(inputSource, uploadPathPrefix, ignoreSize);
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
-        picture.setName(uploadPictureResult.getPicName());
+        String picName = uploadPictureResult.getPicName();
+        if (pictureUploadRequest != null) {
+            String name = pictureUploadRequest.getName();
+            if (StrUtil.isNotBlank(name)) {
+                picName = name;
+            }
+            String category = pictureUploadRequest.getCategory();
+            if (StrUtil.isNotBlank(category)) {
+                picture.setCategory(category);
+            }
+            List<String> tagList = pictureUploadRequest.getTagList();
+            if (CollUtil.isNotEmpty(tagList)) {
+                picture.setTags(JSONUtil.toJsonStr(tagList));
+            }
+        }
+        picture.setName(picName);
         picture.setPicSize(uploadPictureResult.getPicSize());
         picture.setPicWidth(uploadPictureResult.getPicWidth());
         picture.setPicHeight(uploadPictureResult.getPicHeight());
@@ -208,6 +237,56 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR);
     }
 
+    @Override
+    public Integer batchUploadPicture(BatchUploadPictureRequest batchUploadPictureRequest, UserLoginVo loginUser) {
+        ThrowUtils.throwIf(batchUploadPictureRequest == null, ErrorCode.PARAM_ERROR);
+        String searchText = batchUploadPictureRequest.getSearchText();
+        ThrowUtils.throwIf(StringUtils.isBlank(searchText), ErrorCode.PARAM_ERROR, "搜索内容不能为空");
+        Integer searchPage = batchUploadPictureRequest.getSearchPage();
+        ThrowUtils.throwIf(searchPage == null || searchPage <= 0, ErrorCode.PARAM_ERROR);
+        Integer searchNum = batchUploadPictureRequest.getSearchNum();
+        ThrowUtils.throwIf(searchNum == null || searchNum <= 0, ErrorCode.PARAM_ERROR);
+        ThrowUtils.throwIf(searchNum > 30, ErrorCode.PARAM_ERROR, "搜索数量不能大于30");
+        String namePrefix = batchUploadPictureRequest.getNamePrefix();
+        if (StringUtils.isBlank(namePrefix)) {
+            namePrefix = DateUtil.format(new Date(), DatePattern.PURE_DATETIME_PATTERN);
+        }
+        int successNum = 0;
+        try {
+            List<String> imageUrls = BingImageByOffset.getImageUrlsByOffset(searchText, 0, searchNum);
+            if (CollUtil.isEmpty(imageUrls)) {
+                return successNum;
+            }
+            for (String imageUrl : imageUrls) {
+                int idx = imageUrl.indexOf("?");
+                if (idx > -1) {
+                    imageUrl = imageUrl.substring(0, idx);
+                }
+                PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+                BeanUtil.copyProperties(batchUploadPictureRequest, pictureUploadRequest);
+                pictureUploadRequest.setUrl(imageUrl);
+                pictureUploadRequest.setName(namePrefix + "_" + successNum + 1);
+                try {
+                    PictureVo pictureVo = this.uploadPicture(imageUrl, pictureUploadRequest, loginUser, true);
+                    if (pictureVo != null) {
+                        successNum++;
+                        log.info("图片上传成功，文件地址：{}，图片ID:{}", imageUrl, pictureVo.getId());
+                    }
+                    if (successNum >= searchNum) {
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.error("图片上传失败，文件地址：{}", imageUrl);
+                }
+            }
+        } catch (IOException e) {
+            log.error("获取图片失败", e);
+            ThrowUtils.throwIf(true, ErrorCode.SYSTEM_ERROR, "获取图片失败");
+        }
+
+        return successNum;
+    }
+
     /**
      * 获取图片查询条件
      *
@@ -286,6 +365,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             String reviewMessage = pictureQueryRequest.getReviewMessage();
             if (StringUtils.isNotBlank(reviewMessage)) {
                 queryWrapper.like(Picture::getReviewMessage, reviewMessage);
+            }
+            String sortField = pictureQueryRequest.getSortField();
+            String sortOrder = pictureQueryRequest.getSortOrder();
+            if (StringUtils.isNotBlank(sortField) && StringUtils.isNotBlank(sortOrder)) {
+                if ("asc".equals(sortOrder)) {
+                    queryWrapper.orderByAsc(Picture::getCreateTime);
+                } else
+                    queryWrapper.orderByDesc(Picture::getCreateTime);
+            } else {
+                queryWrapper.orderByDesc(Picture::getCreateTime);
             }
         }
         return queryWrapper;

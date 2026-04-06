@@ -4,10 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.rq.cloudpicturebackend.model.dto.picture.*;
 import com.rq.cloudpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.rq.cloudpicturebackend.model.entity.User;
 import com.rq.cloudpicturebackend.model.vo.PictureVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 图片服务
@@ -17,21 +15,22 @@ public interface PictureService extends IService<Picture> {
     /**
      * 上传图片
      *
-     * @param multipartFile        图片文件
+     * @param inputSource          图片文件
      * @param pictureUploadRequest 图片上传请求
      * @param loginUser            登录用户
+     * @param ignoreSize           是否忽略大小
      * @return 图片上传结果
      */
-    PictureVo uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, UserLoginVo loginUser);
+    PictureVo uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, UserLoginVo loginUser, Boolean ignoreSize);
 
     /**
      * 修改图片
      *
      * @param pictureUpdateRequest 图片修改请求
-     * @param loginUser 用户信息
+     * @param loginUser            用户信息
      * @return 修改结果
      */
-    boolean updatePicture(PictureUpdateRequest pictureUpdateRequest,UserLoginVo loginUser);
+    boolean updatePicture(PictureUpdateRequest pictureUpdateRequest, UserLoginVo loginUser);
 
     /**
      * 编辑图片
@@ -79,8 +78,17 @@ public interface PictureService extends IService<Picture> {
      * 图片审核
      *
      * @param pictureQueryRequest 请求
-     * @param loginUser 用户
+     * @param loginUser           用户
      */
     void reviewPicture(PictureReviewRequest pictureQueryRequest, UserLoginVo loginUser);
+
+    /**
+     * 批量获取图片
+     *
+     * @param batchUploadPictureRequest 请求
+     * @param loginUser                 用户
+     * @return 获取数量
+     */
+    Integer batchUploadPicture(BatchUploadPictureRequest batchUploadPictureRequest, UserLoginVo loginUser);
 
 }
