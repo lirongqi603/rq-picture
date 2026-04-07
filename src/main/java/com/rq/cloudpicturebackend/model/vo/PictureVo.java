@@ -142,6 +142,12 @@ public class PictureVo implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date reviewTime;
 
+    /**
+     * 缩略图 url
+     */
+    @ApiModelProperty(value = "缩略图 url", position = 20)
+    private String thumbnailUrl;
+
 
     /**
      * 封装类转对象

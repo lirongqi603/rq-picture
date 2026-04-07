@@ -73,6 +73,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         UploadPictureResult uploadPictureResult = uploadPictureTemplate.uploadPicture(inputSource, uploadPathPrefix, ignoreSize);
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
+        picture.setThumbnailUrl(uploadPictureResult.getThumbnailUrl());
         String picName = uploadPictureResult.getPicName();
         if (pictureUploadRequest != null) {
             String name = pictureUploadRequest.getName();
@@ -253,7 +254,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         }
         int successNum = 0;
         try {
-            List<String> imageUrls = BingImageByOffset.getImageUrlsByOffset(searchText, 0, searchNum);
+            List<String> imageUrls = BingImageByOffset.getImageUrlsByOffset(searchText, searchPage, searchNum);
             if (CollUtil.isEmpty(imageUrls)) {
                 return successNum;
             }
@@ -265,7 +266,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
                 PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
                 BeanUtil.copyProperties(batchUploadPictureRequest, pictureUploadRequest);
                 pictureUploadRequest.setUrl(imageUrl);
-                pictureUploadRequest.setName(namePrefix + "_" + successNum + 1);
+                pictureUploadRequest.setName(namePrefix + "_" + (successNum + 1));
                 try {
                     PictureVo pictureVo = this.uploadPicture(imageUrl, pictureUploadRequest, loginUser, true);
                     if (pictureVo != null) {

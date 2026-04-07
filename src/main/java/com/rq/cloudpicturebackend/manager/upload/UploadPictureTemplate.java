@@ -1,10 +1,12 @@
 package com.rq.cloudpicturebackend.manager.upload;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
 import com.rq.cloudpicturebackend.config.CosClientConfig;
 import com.rq.cloudpicturebackend.exception.BusinessException;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Resource;
 import java.io.File;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 上传图片模板
@@ -76,8 +79,18 @@ public abstract class UploadPictureTemplate {
             file = File.createTempFile(filePath, null);
             processFile(inputSource, file);
             PutObjectResult putObjectResult = cosManager.putPictureObject(filePath, file);
+            List<CIObject> objectList = putObjectResult.getCiUploadResult().getProcessResults().getObjectList();
+            if (CollUtil.isNotEmpty(objectList)) {
+                //压缩图片
+                CIObject compressedCiObject = objectList.get(0);
+                CIObject thumbnailCiObject = null;
+                if (objectList.size() > 1) {
+                    thumbnailCiObject = objectList.get(1);
+                }
+                return buildPictureResult(originalFilename, compressedCiObject, thumbnailCiObject);
+            }
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
-            return bulidPictureResult(originalFilename, filePath, file, imageInfo);
+            return buildPictureResult(originalFilename, filePath, file, imageInfo);
         } catch (Exception e) {
             log.error("图片上传到对象存储错误", e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "图片上传到对象存储错误");
@@ -87,8 +100,29 @@ public abstract class UploadPictureTemplate {
 
     }
 
+    private UploadPictureResult buildPictureResult(String originalFilename, CIObject compressedCiObject, CIObject thumbnailCiObject) {
+        int picWidth = compressedCiObject.getWidth();
+        int picHeight = compressedCiObject.getHeight();
+        double picScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();
+        UploadPictureResult uploadPictureResult = new UploadPictureResult();
+        uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressedCiObject.getKey());
+        uploadPictureResult.setPicName(FileUtil.mainName(originalFilename));
+        uploadPictureResult.setPicSize(compressedCiObject.getSize().longValue());
+        uploadPictureResult.setPicWidth(picWidth);
+        uploadPictureResult.setPicHeight(picHeight);
+        uploadPictureResult.setPicScale(picScale);
+        uploadPictureResult.setPicFormat(compressedCiObject.getFormat());
+        String thumbnailKey = compressedCiObject.getKey();
+        if (thumbnailCiObject != null) {
+            thumbnailKey = thumbnailCiObject.getKey();
+        }
+        uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailKey);
+        return uploadPictureResult;
 
-    private UploadPictureResult bulidPictureResult(String originalFilename, String filePath, File file, ImageInfo imageInfo) {
+    }
+
+
+    private UploadPictureResult buildPictureResult(String originalFilename, String filePath, File file, ImageInfo imageInfo) {
         int picWidth = imageInfo.getWidth();
         int picHeight = imageInfo.getHeight();
         double picScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();

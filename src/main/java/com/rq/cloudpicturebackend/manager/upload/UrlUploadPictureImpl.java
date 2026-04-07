@@ -29,7 +29,7 @@ public class UrlUploadPictureImpl extends UploadPictureTemplate {
         //1.检验url必填
         ThrowUtils.throwIf(StrUtil.isBlank(url), ErrorCode.PARAM_ERROR, "url不能为空");
         //2.检验url格式
-        ThrowUtils.throwIf(!url.startsWith("https://") && !url.startsWith("https://"), ErrorCode.PARAM_ERROR, "仅支持https://或https://开头的url");
+        ThrowUtils.throwIf(!url.startsWith("http://") && !url.startsWith("https://"), ErrorCode.PARAM_ERROR, "仅支持http://或https://开头的url");
         //3.检验url是否有效
         try {
             new URL(url);

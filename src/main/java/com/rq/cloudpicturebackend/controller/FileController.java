@@ -1,10 +1,13 @@
 package com.rq.cloudpicturebackend.controller;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.COSObjectInputStream;
+import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.utils.IOUtils;
 import com.rq.cloudpicturebackend.annotation.AuthCheck;
 import com.rq.cloudpicturebackend.common.BaseResponse;
@@ -25,6 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * 文件控制器
@@ -109,8 +113,23 @@ public class FileController {
         try {
             file = File.createTempFile(filePath, null);
             multipartFile.transferTo(file);
-            cosManager.putObject(filePath, file);
-            return ResultUtils.success(cosClientConfig.getHost() + filePath);
+            PutObjectResult putObjectResult = cosManager.putPictureObject(filePath, file);
+            List<CIObject> objectList = putObjectResult.getCiUploadResult().getProcessResults().getObjectList();
+            if (CollUtil.isNotEmpty(objectList)) {
+                //压缩图片
+                CIObject compressedCiObject = objectList.get(0);
+                CIObject thumbnailCiObject = null;
+                if (objectList.size() > 1) {
+                    thumbnailCiObject = objectList.get(1);
+                }
+                String thumbnailKey = compressedCiObject.getKey();
+                if (thumbnailCiObject != null) {
+                    thumbnailKey = thumbnailCiObject.getKey();
+                }
+                return ResultUtils.success(cosClientConfig.getHost() + "/" + thumbnailKey);
+            } else {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件上传失败");
+            }
         } catch (Exception e) {
             log.error("文件上传失败", e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件上传失败");
