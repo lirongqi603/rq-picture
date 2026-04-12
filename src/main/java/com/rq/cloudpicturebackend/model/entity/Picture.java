@@ -10,9 +10,10 @@ import lombok.Data;
 
 /**
  * 图片
+ *
  * @TableName picture
  */
-@TableName(value ="picture")
+@TableName(value = "picture")
 @Data
 public class Picture implements Serializable {
     /**
@@ -119,6 +120,11 @@ public class Picture implements Serializable {
      * 缩略图 url
      */
     private String thumbnailUrl;
+
+    /**
+     * 空间 id
+     */
+    private String spaceId;
 
     /**
      * 是否删除
