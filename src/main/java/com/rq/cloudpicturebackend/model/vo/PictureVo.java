@@ -148,6 +148,12 @@ public class PictureVo implements Serializable {
     @ApiModelProperty(value = "缩略图 url", position = 20)
     private String thumbnailUrl;
 
+    /**
+     * 空间ID
+     */
+    @ApiModelProperty(value = "空间ID", position = 21)
+    private Long spaceId;
+
 
     /**
      * 封装类转对象

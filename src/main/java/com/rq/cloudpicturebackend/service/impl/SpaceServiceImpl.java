@@ -25,13 +25,10 @@ import com.rq.cloudpicturebackend.service.SpaceService;
 import com.rq.cloudpicturebackend.service.UserService;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -42,8 +39,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
     @Resource
     private UserService userService;
 
-    @Autowired
+    @Resource
     private RedissonClient redissonClient;
+
+    @Resource
+    private SpaceMapper spaceMapper;
 
     @Override
     public Boolean addSpace(SpaceAddRequest spaceAddRequest, UserLoginVo loginUser) {
@@ -60,7 +60,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         SpaceLevelEnum enumByCode = SpaceLevelEnum.getEnumByCode(spaceLevel);
         ThrowUtils.throwIf(enumByCode == null, ErrorCode.PARAM_ERROR, "空间级别错误");
         //如果用户不是管理员，并且空间级别不是普通版
-        ThrowUtils.throwIf(!userService.isAdmin(loginUser) && SpaceLevelEnum.REGULAR.getValue().equals(enumByCode.getValue()), ErrorCode.NOT_AUTH_ERROR, "您没有权限创建此级别的空间");
+        ThrowUtils.throwIf(!userService.isAdmin(loginUser) && !Objects.equals(SpaceLevelEnum.REGULAR.getValue(), enumByCode.getValue()), ErrorCode.NOT_AUTH_ERROR, "您没有权限创建此级别的空间");
         Space space = new Space();
         BeanUtil.copyProperties(spaceAddRequest, space);
         fillSpaceParam(space, loginUser, enumByCode);
@@ -92,10 +92,14 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
     }
 
     @Override
-    public Boolean deleteSpace(DeletedRequest deletedRequest) {
+    public Boolean deleteSpace(DeletedRequest deletedRequest, UserLoginVo loginUser) {
         ThrowUtils.throwIf(deletedRequest == null, ErrorCode.PARAM_ERROR);
         long id = deletedRequest.getId();
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAM_ERROR);
+        Space space = this.getById(id);
+        ThrowUtils.throwIf(space == null, ErrorCode.PARAM_ERROR, "空间不存在");
+        ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser), ErrorCode.NOT_AUTH_ERROR, "您没有权限删除此空间");
+        //删除空间
         boolean result = this.removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "删除空间失败");
         return true;
@@ -120,6 +124,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         Space space = new Space();
         BeanUtil.copyProperties(spaceEditRequest, space);
         checkAndFillParam(loginUser, space);
+        space.setEditTime(new Date());
         boolean result = this.updateById(space);
         ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "编辑空间失败");
         return true;
@@ -189,6 +194,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         }
         return spaceVo;
 
+    }
+
+    @Override
+    public void calculateSpaceUsage(Long spaceId) {
+        spaceMapper.calculateSpaceUsage(spaceId);
     }
 
     private QueryWrapper<Space> getSpaceQueryWrapper(SpaceQueryRequest spaceQueryRequest) {

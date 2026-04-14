@@ -19,6 +19,12 @@ public class UploadPictureRequest implements Serializable {
     /**
      * 图片url
      */
-    @ApiModelProperty(value = "图片url", required = true, position = 1)
+    @ApiModelProperty(value = "图片url", required = true, position = 2)
     private String url;
+
+    /**
+     * 空间ID
+     */
+    @ApiModelProperty(value = "空间ID", required = true, position = 3)
+    private String spaceId;
 }

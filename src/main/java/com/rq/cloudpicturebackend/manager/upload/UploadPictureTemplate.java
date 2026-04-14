@@ -87,6 +87,8 @@ public abstract class UploadPictureTemplate {
                 if (objectList.size() > 1) {
                     thumbnailCiObject = objectList.get(1);
                 }
+                //删除原图信息
+                cosManager.delObject(filePath);
                 return buildPictureResult(originalFilename, compressedCiObject, thumbnailCiObject);
             }
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();

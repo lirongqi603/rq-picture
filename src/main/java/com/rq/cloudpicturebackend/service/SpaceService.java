@@ -16,7 +16,7 @@ public interface SpaceService extends IService<Space> {
 
     Boolean addSpace(SpaceAddRequest spaceAddRequest, UserLoginVo loginUser);
 
-    Boolean deleteSpace(DeletedRequest deletedRequest);
+    Boolean deleteSpace(DeletedRequest deletedRequest, UserLoginVo loginUser);
 
     Boolean updateSpace(SpaceUpdateRequest spaceUpdateRequest, UserLoginVo loginUser);
 
@@ -27,5 +27,7 @@ public interface SpaceService extends IService<Space> {
     Page<SpaceVo> listPageVo(SpaceQueryRequest spaceQueryRequest, UserLoginVo loginUser);
 
     SpaceVo getSpaceVoById(Long id, UserLoginVo loginUser);
+
+    void calculateSpaceUsage(Long spaceId);
 
 }

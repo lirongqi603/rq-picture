@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.rq.cloudpicturebackend.model.vo.PictureVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * 图片服务
  */
@@ -64,7 +66,7 @@ public interface PictureService extends IService<Picture> {
      * @param pictureQueryRequest 图片查询请求
      * @return 图片VO分页结果
      */
-    Page<PictureVo> listPagePictureVos(PictureQueryRequest pictureQueryRequest);
+    Page<PictureVo> listPagePictureVos(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
 
     /**
      * 获取图片VO

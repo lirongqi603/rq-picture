@@ -6,6 +6,7 @@ import com.rq.cloudpicturebackend.common.BaseResponse;
 import com.rq.cloudpicturebackend.common.DeletedRequest;
 import com.rq.cloudpicturebackend.common.ResultUtils;
 import com.rq.cloudpicturebackend.constant.UserConstant;
+import com.rq.cloudpicturebackend.enums.SpaceLevelEnum;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.exception.ThrowUtils;
 import com.rq.cloudpicturebackend.model.dto.space.SpaceAddRequest;
@@ -13,6 +14,7 @@ import com.rq.cloudpicturebackend.model.dto.space.SpaceEditRequest;
 import com.rq.cloudpicturebackend.model.dto.space.SpaceQueryRequest;
 import com.rq.cloudpicturebackend.model.dto.space.SpaceUpdateRequest;
 import com.rq.cloudpicturebackend.model.entity.Space;
+import com.rq.cloudpicturebackend.model.vo.SpaceLevelVo;
 import com.rq.cloudpicturebackend.model.vo.SpaceVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 import com.rq.cloudpicturebackend.service.SpaceService;
@@ -21,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @Description: 空间管理
@@ -52,9 +57,9 @@ public class SpaceController {
      * 删除空间
      */
     @PostMapping("/delete")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> deleteSpace(@RequestBody DeletedRequest deletedRequest) {
-        Boolean result = spaceService.deleteSpace(deletedRequest);
+    public BaseResponse<Boolean> deleteSpace(@RequestBody DeletedRequest deletedRequest, HttpServletRequest request) {
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        Boolean result = spaceService.deleteSpace(deletedRequest, loginUser);
         return ResultUtils.success(result);
     }
 
@@ -118,6 +123,15 @@ public class SpaceController {
         UserLoginVo loginUser = userService.getLoginUser(request);
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAM_ERROR);
         SpaceVo result = spaceService.getSpaceVoById(id, loginUser);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 空间级别
+     */
+    @GetMapping("/level")
+    public BaseResponse<List<SpaceLevelVo>> getSpaceLevel() {
+        List<SpaceLevelVo> result = Arrays.stream(SpaceLevelEnum.values()).map(data -> new SpaceLevelVo(data.getText(), data.getValue(), data.getCount(), data.getSize())).collect(Collectors.toList());
         return ResultUtils.success(result);
     }
 }

@@ -1,6 +1,7 @@
 package com.rq.cloudpicturebackend.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.rq.cloudpicturebackend.annotation.AuthCheck;
 import com.rq.cloudpicturebackend.common.BaseResponse;
@@ -13,10 +14,12 @@ import com.rq.cloudpicturebackend.model.dto.picture.BatchUploadPictureRequest;
 import com.rq.cloudpicturebackend.model.dto.picture.UploadPictureRequest;
 import com.rq.cloudpicturebackend.model.dto.picture.*;
 import com.rq.cloudpicturebackend.model.entity.Picture;
+import com.rq.cloudpicturebackend.model.entity.Space;
 import com.rq.cloudpicturebackend.model.vo.PictureTagCategory;
 import com.rq.cloudpicturebackend.model.vo.PictureVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 import com.rq.cloudpicturebackend.service.PictureService;
+import com.rq.cloudpicturebackend.service.SpaceService;
 import com.rq.cloudpicturebackend.service.UserService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,11 +39,13 @@ public class PictureController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private SpaceService spaceService;
+
     /**
      * 图片上传接口
      */
     @PostMapping("/upload")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<PictureVo> uploadPicture(@RequestPart(value = "file") MultipartFile multipartFile,
                                                  PictureUploadRequest pictureUploadRequest,
                                                  HttpServletRequest request) {
@@ -102,8 +107,7 @@ public class PictureController {
     @PostMapping("/list/pageVo")
     public BaseResponse<Page<PictureVo>> listPagePictureVos(@RequestBody PictureQueryRequest pictureQueryRequest,
                                                             HttpServletRequest request) {
-//        UserLoginVo loginUser = userService.getLoginUser(request);
-        Page<PictureVo> pictureVoPage = pictureService.listPagePictureVos(pictureQueryRequest);
+        Page<PictureVo> pictureVoPage = pictureService.listPagePictureVos(pictureQueryRequest, request);
         return ResultUtils.success(pictureVoPage);
     }
 
@@ -124,10 +128,17 @@ public class PictureController {
      * 根据ID查询图片信息(用户端)
      */
     @GetMapping("/getVo")
-    public BaseResponse<PictureVo> getPictureVoById(Long id) {
+    public BaseResponse<PictureVo> getPictureVoById(Long id, HttpServletRequest request) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAM_ERROR);
         Picture picture = pictureService.getById(id);
         ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
+        Long spaceId = picture.getSpaceId();
+        if (spaceId != null) {
+            UserLoginVo loginUser = userService.getLoginUser(request);
+            Space space = spaceService.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+            ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NOT_AUTH_ERROR, "没有权限");
+        }
         return ResultUtils.success(pictureService.getPictureVo(picture));
     }
 

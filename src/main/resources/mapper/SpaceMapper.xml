@@ -18,5 +18,11 @@
         <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
         <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
     </resultMap>
+    <update id="calculateSpaceUsage">
+        update space
+        set totalSize  = (select sum(picSize) from picture where spaceId = #{id} and isDelete = 0),
+            totalCount = (select count(*) from picture where spaceId = #{id} and isDelete = 0)
+        where id = #{id}
+    </update>
 
 </mapper>

@@ -124,7 +124,7 @@ public class Picture implements Serializable {
     /**
      * 空间 id
      */
-    private String spaceId;
+    private Long spaceId;
 
     /**
      * 是否删除

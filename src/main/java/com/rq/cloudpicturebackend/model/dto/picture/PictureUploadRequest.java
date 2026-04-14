@@ -46,4 +46,10 @@ public class PictureUploadRequest implements Serializable {
      */
     @ApiModelProperty(value = "图片标签", position = 5)
     private List<String> tagList;
+
+    /**
+     * 图片空间id
+     */
+    @ApiModelProperty(value = "图片空间id", position = 6)
+    private Long spaceId;
 }

@@ -42,4 +42,10 @@ public class PictureEditRequest implements Serializable {
      */
     @ApiModelProperty(value = "标签", position = 5)
     private List<String> tags;
+
+    /**
+     * 空间id
+     */
+    @ApiModelProperty(value = "空间id", position = 6)
+    private Long spaceId;
 }
