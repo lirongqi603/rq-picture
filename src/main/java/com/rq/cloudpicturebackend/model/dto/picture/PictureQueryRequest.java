@@ -6,6 +6,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -114,5 +115,24 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
     /**
      * 是否进查询公共图库
      */
+    @ApiModelProperty(value = "是否进查询公共图库", position = 17)
     private Boolean isPublic = true;
+
+    /**
+     * 编辑开始时间
+     */
+    @ApiModelProperty(value = "编辑开始时间", position = 18)
+    private Date editStartTime;
+
+    /**
+     * 编辑结束时间
+     */
+    @ApiModelProperty(value = "编辑结束时间", position = 19)
+    private Date editEndTime;
+
+    /**
+     * 图片主色调
+     */
+    @ApiModelProperty(value = "图片主色调", position = 20)
+    private String picColor;
 }

@@ -8,6 +8,7 @@ import com.rq.cloudpicturebackend.model.vo.PictureVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * 图片服务
@@ -93,4 +94,21 @@ public interface PictureService extends IService<Picture> {
      */
     Integer batchUploadPicture(BatchUploadPictureRequest batchUploadPictureRequest, UserLoginVo loginUser);
 
+    /**
+     * 根据颜色搜索图片
+     *
+     * @param pictureQueryRequest 请求
+     * @param request             请求
+     * @return 图片列表
+     */
+    List<PictureVo> searchPictureListByColor(PictureQueryRequest pictureQueryRequest, HttpServletRequest request);
+
+    /**
+     * 批量修改图片
+     *
+     * @param batchUpdatePictureRequest 请求
+     * @param loginUser                 用户
+     * @return 修改数量
+     */
+    Integer batchUpdatePicture(BatchUpdatePictureRequest batchUpdatePictureRequest, UserLoginVo loginUser);
 }

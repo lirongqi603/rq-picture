@@ -84,3 +84,7 @@ create table if not exists space
 ALTER TABLE picture
     -- 添加新列
     ADD COLUMN spaceId bigint NULL COMMENT '所属空间 ID';
+
+ALTER TABLE picture
+    -- 添加新列
+    ADD COLUMN picColor VARCHAR(50) NULL COMMENT '图片主题色';

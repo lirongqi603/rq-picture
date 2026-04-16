@@ -110,7 +110,15 @@ public class PictureController {
         Page<PictureVo> pictureVoPage = pictureService.listPagePictureVos(pictureQueryRequest, request);
         return ResultUtils.success(pictureVoPage);
     }
-
+    /**
+     * 图片查询接口(用户端)
+     */
+    @PostMapping("/search/color")
+    public BaseResponse<List<PictureVo>> searchPictureListByColor(@RequestBody PictureQueryRequest pictureQueryRequest,
+                                                            HttpServletRequest request) {
+        List<PictureVo> pictureVoList = pictureService.searchPictureListByColor(pictureQueryRequest, request);
+        return ResultUtils.success(pictureVoList);
+    }
 
     /**
      * 根据ID查询图片信息(管理员端)
@@ -187,4 +195,15 @@ public class PictureController {
         Integer cnt = pictureService.batchUploadPicture(batchUploadPictureRequest, loginUser);
         return ResultUtils.success(cnt);
     }
+
+    /**
+     * 批量修改图片
+     */
+    @PostMapping("/batchUpdatePicture")
+    public BaseResponse<Integer> batchUpdatePicture(@RequestBody BatchUpdatePictureRequest batchUpdatePictureRequest, HttpServletRequest request) {
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        Integer cnt = pictureService.batchUpdatePicture(batchUpdatePictureRequest, loginUser);
+        return ResultUtils.success(cnt);
+    }
+
 }

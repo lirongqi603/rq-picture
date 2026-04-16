@@ -48,4 +48,9 @@ public class UploadPictureResult {
      * 缩略图地址
      */
     private String thumbnailUrl;
+
+    /**
+     * 图片主题色
+     */
+    private String picColor;
 }

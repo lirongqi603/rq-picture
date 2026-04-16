@@ -127,6 +127,11 @@ public class Picture implements Serializable {
     private Long spaceId;
 
     /**
+     * 空间 id
+     */
+    private String picColor;
+
+    /**
      * 是否删除
      */
     @TableLogic

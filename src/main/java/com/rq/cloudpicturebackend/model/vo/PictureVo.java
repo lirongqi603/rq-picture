@@ -154,6 +154,12 @@ public class PictureVo implements Serializable {
     @ApiModelProperty(value = "空间ID", position = 21)
     private Long spaceId;
 
+    /**
+     * 相似度
+     */
+    @ApiModelProperty(value = "相似度", position = 22)
+    private Double similarity;
+
 
     /**
      * 封装类转对象

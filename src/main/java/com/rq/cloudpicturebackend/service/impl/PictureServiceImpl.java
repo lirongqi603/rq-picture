@@ -7,6 +7,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -31,14 +32,17 @@ import com.rq.cloudpicturebackend.service.PictureService;
 import com.rq.cloudpicturebackend.service.SpaceService;
 import com.rq.cloudpicturebackend.service.UserService;
 import com.rq.cloudpicturebackend.utill.BingImageByOffset;
+import com.rq.cloudpicturebackend.utill.ColorSimilarUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.awt.*;
 import java.io.IOException;
 import java.util.*;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -120,6 +124,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         picture.setPicHeight(uploadPictureResult.getPicHeight());
         picture.setPicScale(uploadPictureResult.getPicScale());
         picture.setPicFormat(uploadPictureResult.getPicFormat());
+        picture.setPicColor(uploadPictureResult.getPicColor());
         picture.setUserId(loginUser.getId());
         fullReviewInfo(picture, loginUser);
         if (pictureId != null) {
@@ -360,6 +365,60 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         return successNum;
     }
 
+    @Override
+    public List<PictureVo> searchPictureListByColor(PictureQueryRequest pictureQueryRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureQueryRequest == null, ErrorCode.PARAM_ERROR);
+        String picColor = pictureQueryRequest.getPicColor();
+        ThrowUtils.throwIf(StrUtil.isBlank(picColor), ErrorCode.PARAM_ERROR);
+        Color searchColor = Color.decode(picColor);
+        List<PictureVo> pictureVoList = new ArrayList<>();
+        List<Picture> pictureList = this.list(getPictureQueryWrapper(pictureQueryRequest));
+        if (CollUtil.isNotEmpty(pictureList)) {
+            return pictureList.stream().filter(data -> StrUtil.isNotBlank(data.getPicColor())).sorted(
+                    Comparator.comparingDouble(data -> {
+                        String color = data.getPicColor();
+                        Color dataColor = Color.decode(color);
+                        return -ColorSimilarUtils.calculateSimilarity(searchColor, dataColor);
+                    })
+            ).limit(12).map(data -> BeanUtil.copyProperties(data, PictureVo.class)).collect(Collectors.toList());
+        }
+        return pictureVoList;
+    }
+
+    @Override
+    public Integer batchUpdatePicture(BatchUpdatePictureRequest batchUpdatePictureRequest, UserLoginVo loginUser) {
+        ThrowUtils.throwIf(batchUpdatePictureRequest == null, ErrorCode.PARAM_ERROR);
+        List<Long> pictureIdList = batchUpdatePictureRequest.getPictureIdList();
+        ThrowUtils.throwIf(CollUtil.isEmpty(pictureIdList), ErrorCode.PARAM_ERROR, "图片列表不能为空");
+        Long spaceId = batchUpdatePictureRequest.getSpaceId();
+        ThrowUtils.throwIf(spaceId == null, ErrorCode.PARAM_ERROR, "空间ID不能为空");
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.PARAM_ERROR, "空间不存在");
+        ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser), ErrorCode.PARAM_ERROR, "没有权限修改图片");
+        String nameFormat = batchUpdatePictureRequest.getNameFormat();
+        String category = batchUpdatePictureRequest.getCategory();
+        List<String> tagList = batchUpdatePictureRequest.getTagList();
+        List<Picture> pictureList = new ArrayList<>();
+        int count = 1;
+        for (Long pictureId : pictureIdList) {
+            Picture picture = new Picture();
+            picture.setId(pictureId);
+            if (StringUtils.isNotBlank(nameFormat)) {
+                picture.setName(nameFormat.replace("[序号]", String.valueOf(count++)));
+            }
+            if (StringUtils.isNotBlank(category)) {
+                picture.setCategory(category);
+            }
+            if (CollUtil.isNotEmpty(tagList)) {
+                picture.setTags(JSONUtil.toJsonStr(tagList));
+            }
+            pictureList.add(picture);
+        }
+        boolean result = this.updateBatchById(pictureList);
+        ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "批量编辑图片失败");
+        return pictureIdList.size();
+    }
+
     /**
      * 获取图片查询条件
      *
@@ -446,6 +505,15 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
                 queryWrapper.isNull(Picture::getSpaceId);
             } else if (spaceId != null) {
                 queryWrapper.eq(Picture::getSpaceId, spaceId);
+            }
+            //编辑时间判断
+            Date editStartTime = pictureQueryRequest.getEditStartTime();
+            if (editStartTime != null) {
+                queryWrapper.ge(Picture::getCreateTime, editStartTime);
+            }
+            Date editEndTime = pictureQueryRequest.getEditEndTime();
+            if (editEndTime != null) {
+                queryWrapper.le(Picture::getCreateTime, editEndTime);
             }
             String sortField = pictureQueryRequest.getSortField();
             String sortOrder = pictureQueryRequest.getSortOrder();
