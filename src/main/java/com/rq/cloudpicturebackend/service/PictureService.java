@@ -1,6 +1,9 @@
 package com.rq.cloudpicturebackend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rq.cloudpicturebackend.api.aliyun.model.CreateTaskRequest;
+import com.rq.cloudpicturebackend.api.aliyun.model.CreateTaskResponse;
+import com.rq.cloudpicturebackend.api.aliyun.model.QueryTaskResponse;
 import com.rq.cloudpicturebackend.model.dto.picture.*;
 import com.rq.cloudpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -111,4 +114,23 @@ public interface PictureService extends IService<Picture> {
      * @return 修改数量
      */
     Integer batchUpdatePicture(BatchUpdatePictureRequest batchUpdatePictureRequest, UserLoginVo loginUser);
+
+    /**
+     * 创建AI任务
+     *
+     * @param createTaskRequest 请求
+     * @param loginUser         用户
+     * @return 任务响应
+     */
+    CreateTaskResponse createAiTask(CreateTaskRequest createTaskRequest, UserLoginVo loginUser);
+
+    /**
+     * 获取AI任务进度
+     *
+     * @param taskId    任务ID
+     * @param loginUser 用户
+     * @return 任务进度
+     */
+    QueryTaskResponse getAiTaskProgress(String taskId, UserLoginVo loginUser);
+
 }

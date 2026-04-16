@@ -71,12 +71,16 @@ public abstract class UploadPictureTemplate {
         //图片上传地址
         String uuid = RandomUtil.randomString(16);
         String originalFilename = getOriginalFilename(inputSource);
+        //判断名称是否有？，文号及后边的的截断
+        if (originalFilename.contains("?")) {
+            originalFilename = originalFilename.substring(0, originalFilename.indexOf("?"));
+        }
         String uploadFileName = String.format("%s_%s.%s", DateUtil.formatDate(new Date()), uuid, FileUtil.getSuffix(originalFilename));
         String filePath = String.format("%s/%s", uploadPrefix, uploadFileName);
         //上传文件到对象存储，并将结果返回
         File file = null;
         try {
-            file = File.createTempFile(filePath, null);
+            file = File.createTempFile(filePath, "." + FileUtil.getSuffix(originalFilename));
             processFile(inputSource, file);
             PutObjectResult putObjectResult = cosManager.putPictureObject(filePath, file);
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();

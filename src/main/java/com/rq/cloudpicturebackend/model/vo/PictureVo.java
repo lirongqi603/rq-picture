@@ -160,6 +160,12 @@ public class PictureVo implements Serializable {
     @ApiModelProperty(value = "相似度", position = 22)
     private Double similarity;
 
+    /**
+     * 主色调
+     */
+    @ApiModelProperty(value = "主色调", position = 23)
+    private String picColor;
+
 
     /**
      * 封装类转对象

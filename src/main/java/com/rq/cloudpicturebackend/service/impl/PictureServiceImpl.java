@@ -11,8 +11,13 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.rq.cloudpicturebackend.api.aliyun.ImageOutPaintingClient;
+import com.rq.cloudpicturebackend.api.aliyun.model.CreateTaskRequest;
+import com.rq.cloudpicturebackend.api.aliyun.model.CreateTaskResponse;
+import com.rq.cloudpicturebackend.api.aliyun.model.QueryTaskResponse;
 import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.enums.ReviewStatusEnum;
+import com.rq.cloudpicturebackend.exception.BusinessException;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.exception.ThrowUtils;
 import com.rq.cloudpicturebackend.manager.CosManager;
@@ -65,6 +70,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     private TransactionTemplate transactionTemplate;
     @Resource
     private CosManager cosManager;
+    @Resource
+    private ImageOutPaintingClient imageOutPaintingClient;
 
     @Override
     public PictureVo uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, UserLoginVo loginUser, Boolean ignoreSize) {
@@ -417,6 +424,20 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         boolean result = this.updateBatchById(pictureList);
         ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "批量编辑图片失败");
         return pictureIdList.size();
+    }
+
+    @Override
+    public CreateTaskResponse createAiTask(CreateTaskRequest createTaskRequest, UserLoginVo loginUser) {
+        ThrowUtils.throwIf(createTaskRequest == null, ErrorCode.PARAM_ERROR);
+        ThrowUtils.throwIf(createTaskRequest.getInput() == null, ErrorCode.PARAM_ERROR);
+        ThrowUtils.throwIf(createTaskRequest.getInput().getImage_url() == null, ErrorCode.PARAM_ERROR, "图片地址不能为空");
+        return imageOutPaintingClient.createTask(createTaskRequest);
+    }
+
+    @Override
+    public QueryTaskResponse getAiTaskProgress(String taskId, UserLoginVo loginUser) {
+        ThrowUtils.throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAM_ERROR);
+        return imageOutPaintingClient.queryTask(taskId);
     }
 
     /**

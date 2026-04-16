@@ -4,6 +4,9 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.rq.cloudpicturebackend.annotation.AuthCheck;
+import com.rq.cloudpicturebackend.api.aliyun.model.CreateTaskRequest;
+import com.rq.cloudpicturebackend.api.aliyun.model.CreateTaskResponse;
+import com.rq.cloudpicturebackend.api.aliyun.model.QueryTaskResponse;
 import com.rq.cloudpicturebackend.common.BaseResponse;
 import com.rq.cloudpicturebackend.common.DeletedRequest;
 import com.rq.cloudpicturebackend.common.ResultUtils;
@@ -110,12 +113,13 @@ public class PictureController {
         Page<PictureVo> pictureVoPage = pictureService.listPagePictureVos(pictureQueryRequest, request);
         return ResultUtils.success(pictureVoPage);
     }
+
     /**
      * 图片查询接口(用户端)
      */
     @PostMapping("/search/color")
     public BaseResponse<List<PictureVo>> searchPictureListByColor(@RequestBody PictureQueryRequest pictureQueryRequest,
-                                                            HttpServletRequest request) {
+                                                                  HttpServletRequest request) {
         List<PictureVo> pictureVoList = pictureService.searchPictureListByColor(pictureQueryRequest, request);
         return ResultUtils.success(pictureVoList);
     }
@@ -204,6 +208,27 @@ public class PictureController {
         UserLoginVo loginUser = userService.getLoginUser(request);
         Integer cnt = pictureService.batchUpdatePicture(batchUpdatePictureRequest, loginUser);
         return ResultUtils.success(cnt);
+    }
+
+    /**
+     * 创建AI图像扩展任务
+     */
+    @PostMapping("/createAiTask")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<CreateTaskResponse> createAiTask(@RequestBody CreateTaskRequest createTaskRequest, HttpServletRequest request) {
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        CreateTaskResponse createTaskResponse = pictureService.createAiTask(createTaskRequest, loginUser);
+        return ResultUtils.success(createTaskResponse);
+    }
+
+    /**
+     * 获取AI图像扩展任务进度
+     */
+    @GetMapping("/getAiTaskProgress")
+    public BaseResponse<QueryTaskResponse> getAiTaskProgress(@RequestParam("taskId") String taskId, HttpServletRequest request) {
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        QueryTaskResponse queryTaskResponse = pictureService.getAiTaskProgress(taskId, loginUser);
+        return ResultUtils.success(queryTaskResponse);
     }
 
 }
