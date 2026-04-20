@@ -33,6 +33,12 @@ public class SpaceAddRequest implements Serializable {
     @ApiModelProperty(value = "空间图片的最大数量", position = 4)
     private Long maxCount;
 
+    /**
+     * 空间类型
+     */
+    @ApiModelProperty(value = "空间类型", position = 5)
+    private Integer spaceType;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 

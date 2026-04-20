@@ -9,23 +9,33 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.rq.cloudpicturebackend.common.DeletedRequest;
 import com.rq.cloudpicturebackend.enums.SpaceLevelEnum;
+import com.rq.cloudpicturebackend.enums.SpaceRoleEnum;
+import com.rq.cloudpicturebackend.enums.SpaceTypeEnum;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.exception.ThrowUtils;
+import com.rq.cloudpicturebackend.manager.auth.SpaceUserAuthManager;
+import com.rq.cloudpicturebackend.manager.auth.StpKit;
+import com.rq.cloudpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
+import com.rq.cloudpicturebackend.manager.sharding.DynamicShardingManager;
 import com.rq.cloudpicturebackend.mapper.SpaceMapper;
 import com.rq.cloudpicturebackend.model.dto.space.SpaceAddRequest;
 import com.rq.cloudpicturebackend.model.dto.space.SpaceEditRequest;
 import com.rq.cloudpicturebackend.model.dto.space.SpaceQueryRequest;
 import com.rq.cloudpicturebackend.model.dto.space.SpaceUpdateRequest;
 import com.rq.cloudpicturebackend.model.entity.Space;
+import com.rq.cloudpicturebackend.model.entity.SpaceUser;
 import com.rq.cloudpicturebackend.model.entity.User;
 import com.rq.cloudpicturebackend.model.vo.SpaceVo;
 import com.rq.cloudpicturebackend.model.vo.UserInfoVo;
 import com.rq.cloudpicturebackend.model.vo.UserLoginVo;
 import com.rq.cloudpicturebackend.service.SpaceService;
+import com.rq.cloudpicturebackend.service.SpaceUserService;
 import com.rq.cloudpicturebackend.service.UserService;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -45,6 +55,21 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
     @Resource
     private SpaceMapper spaceMapper;
 
+    @Resource
+    @Lazy
+    private SpaceUserService spaceUserService;
+
+    @Resource
+    private TransactionTemplate transactionTemplate;
+
+    @Resource
+    @Lazy
+    private DynamicShardingManager shardingManager;
+
+    @Resource
+    @Lazy
+    private SpaceUserAuthManager spaceUserAuthManager;
+
     @Override
     public Boolean addSpace(SpaceAddRequest spaceAddRequest, UserLoginVo loginUser) {
         //校验用户是否登录
@@ -61,6 +86,14 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         ThrowUtils.throwIf(enumByCode == null, ErrorCode.PARAM_ERROR, "空间级别错误");
         //如果用户不是管理员，并且空间级别不是普通版
         ThrowUtils.throwIf(!userService.isAdmin(loginUser) && !Objects.equals(SpaceLevelEnum.REGULAR.getValue(), enumByCode.getValue()), ErrorCode.NOT_AUTH_ERROR, "您没有权限创建此级别的空间");
+        Integer spaceType = spaceAddRequest.getSpaceType();
+        if (spaceType != null) {
+            //校验空间类型是否合法
+            SpaceTypeEnum spaceTypeEnum = SpaceTypeEnum.getEnumByValue(spaceType);
+            ThrowUtils.throwIf(spaceTypeEnum == null, ErrorCode.PARAM_ERROR, "空间类型错误");
+        } else {
+            spaceAddRequest.setSpaceType(SpaceTypeEnum.PRIVATE.getValue());
+        }
         Space space = new Space();
         BeanUtil.copyProperties(spaceAddRequest, space);
         fillSpaceParam(space, loginUser, enumByCode);
@@ -71,13 +104,30 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
             boolean isLocked = lock.tryLock(10, 30, TimeUnit.SECONDS);
             if (isLocked) {
                 try {
-                    //检验每个人只能创建一个空间
-                    boolean exists = this.lambdaQuery().eq(Space::getUserId, loginUser.getId()).exists();
-                    ThrowUtils.throwIf(exists, ErrorCode.PARAM_ERROR, "每个人只能创建一个空间");
+                    //检验每个人每个类型只能创建一个空间
+                    boolean exists = this.lambdaQuery().eq(Space::getUserId, loginUser.getId())
+                            .eq(Space::getSpaceType, spaceAddRequest.getSpaceType()).exists();
+                    ThrowUtils.throwIf(exists, ErrorCode.PARAM_ERROR, "每个人每个类型只能创建一个空间");
                     space.setUserId(loginUser.getId());
-                    //创建空间
-                    boolean result = this.save(space);
-                    ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "创建空间失败");
+                    transactionTemplate.execute(status -> {
+                        //创建空间
+                        boolean result = this.save(space);
+                        ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "创建空间失败");
+                        //如果是团队空间，默认将创建人加入空间用户表中
+                        if (Objects.equals(SpaceTypeEnum.TEAM.getValue(), spaceType)) {
+                            SpaceUser spaceUser = new SpaceUser();
+                            spaceUser.setSpaceId(space.getId());
+                            spaceUser.setUserId(loginUser.getId());
+                            spaceUser.setSpaceRole(SpaceRoleEnum.ADMIN.getValue());
+                            boolean userResult = spaceUserService.save(spaceUser);
+                            ThrowUtils.throwIf(!userResult, ErrorCode.SYSTEM_ERROR, "创建空间用户失败");
+                        }
+                        if (SpaceLevelEnum.FLAGSHIP.getValue().equals(spaceLevel)) {
+                            //如果是旗舰版需要分表存储
+                            shardingManager.createSpacePictureTable(space);
+                        }
+                        return true;
+                    });
                 } finally {
                     lock.unlock();
                 }
@@ -183,9 +233,13 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         Space space = this.getById(id);
         ThrowUtils.throwIf(space == null, ErrorCode.SYSTEM_ERROR, "空间不存在");
         //校验是否是有权查看
-        ThrowUtils.throwIf(!loginUser.getId().equals(space.getUserId()) && !userService.isAdmin(loginUser), ErrorCode.NOT_AUTH_ERROR);
+        //ThrowUtils.throwIf(!loginUser.getId().equals(space.getUserId()) && !userService.isAdmin(loginUser), ErrorCode.NOT_AUTH_ERROR);
         SpaceVo spaceVo = new SpaceVo();
         BeanUtil.copyProperties(space, spaceVo);
+        boolean hasPermission = StpKit.SPACE.hasPermission(loginUser.getId(), SpaceUserPermissionConstant.PICTURE_VIEW);
+        ThrowUtils.throwIf(!hasPermission, ErrorCode.NOT_AUTH_ERROR, "没有权限");
+        List<String> permissionList = spaceUserAuthManager.getPermissionList(space, loginUser);
+        spaceVo.setPermissionList(permissionList);
         User user = userService.getById(space.getUserId());
         if (user != null) {
             UserInfoVo userInfoVo = new UserInfoVo();
@@ -234,6 +288,10 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space> implements
         Long userId = spaceQueryRequest.getUserId();
         if (userId != null && userId > 0) {
             queryWrapper.eq("userId", userId);
+        }
+        Integer spaceType = spaceQueryRequest.getSpaceType();
+        if (spaceType != null) {
+            queryWrapper.eq("spaceType", spaceType);
         }
         String sortField = spaceQueryRequest.getSortField();
         String sortOrder = spaceQueryRequest.getSortOrder();

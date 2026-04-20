@@ -1,7 +1,6 @@
 package com.rq.cloudpicturebackend.controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.rq.cloudpicturebackend.annotation.AuthCheck;
 import com.rq.cloudpicturebackend.api.aliyun.model.CreateTaskRequest;
@@ -13,8 +12,10 @@ import com.rq.cloudpicturebackend.common.ResultUtils;
 import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.exception.ThrowUtils;
-import com.rq.cloudpicturebackend.model.dto.picture.BatchUploadPictureRequest;
-import com.rq.cloudpicturebackend.model.dto.picture.UploadPictureRequest;
+import com.rq.cloudpicturebackend.manager.auth.SpaceUserAuthManager;
+import com.rq.cloudpicturebackend.manager.auth.StpKit;
+import com.rq.cloudpicturebackend.manager.auth.annotation.SaSpaceCheckPermission;
+import com.rq.cloudpicturebackend.manager.auth.model.SpaceUserPermissionConstant;
 import com.rq.cloudpicturebackend.model.dto.picture.*;
 import com.rq.cloudpicturebackend.model.entity.Picture;
 import com.rq.cloudpicturebackend.model.entity.Space;
@@ -29,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -49,6 +51,7 @@ public class PictureController {
      * 图片上传接口
      */
     @PostMapping("/upload")
+    @SaSpaceCheckPermission(SpaceUserPermissionConstant.PICTURE_UPLOAD)
     public BaseResponse<PictureVo> uploadPicture(@RequestPart(value = "file") MultipartFile multipartFile,
                                                  PictureUploadRequest pictureUploadRequest,
                                                  HttpServletRequest request) {
@@ -75,6 +78,7 @@ public class PictureController {
      * 图片上传接口(用户端)
      */
     @PostMapping("/user/edit")
+    @SaSpaceCheckPermission(SpaceUserPermissionConstant.PICTURE_EDIT)
     public BaseResponse<Boolean> editPicture(@RequestBody PictureEditRequest pictureEditRequest,
                                              HttpServletRequest request) {
         UserLoginVo loginUser = userService.getLoginUser(request);
@@ -86,6 +90,7 @@ public class PictureController {
      * 图片删除接口
      */
     @PostMapping("/delete")
+    @SaSpaceCheckPermission(SpaceUserPermissionConstant.PICTURE_DELETE)
     public BaseResponse<Boolean> deletePicture(@RequestBody DeletedRequest deletedRequest,
                                                HttpServletRequest request) {
         ThrowUtils.throwIf(deletedRequest == null || deletedRequest.getId() <= 0, ErrorCode.PARAM_ERROR);
@@ -118,6 +123,7 @@ public class PictureController {
      * 图片查询接口(用户端)
      */
     @PostMapping("/search/color")
+    @SaSpaceCheckPermission(SpaceUserPermissionConstant.PICTURE_VIEW)
     public BaseResponse<List<PictureVo>> searchPictureListByColor(@RequestBody PictureQueryRequest pictureQueryRequest,
                                                                   HttpServletRequest request) {
         List<PictureVo> pictureVoList = pictureService.searchPictureListByColor(pictureQueryRequest, request);
@@ -145,13 +151,26 @@ public class PictureController {
         Picture picture = pictureService.getById(id);
         ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
         Long spaceId = picture.getSpaceId();
-        if (spaceId != null) {
-            UserLoginVo loginUser = userService.getLoginUser(request);
-            Space space = spaceService.getById(spaceId);
-            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
-            ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NOT_AUTH_ERROR, "没有权限");
+        UserLoginVo loginUser = null;
+        try {
+            loginUser = userService.getLoginUser(request);
+        } catch (Exception e) {
+
         }
-        return ResultUtils.success(pictureService.getPictureVo(picture));
+        List<String> permissionList = new ArrayList<>();
+        if (spaceId != null) {
+            Space space = spaceService.getById(spaceId);
+            ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "未登录");
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+            boolean hasPermission = StpKit.SPACE.hasPermission(loginUser.getId(), SpaceUserPermissionConstant.PICTURE_VIEW);
+            ThrowUtils.throwIf(!hasPermission, ErrorCode.NOT_AUTH_ERROR, "没有权限");
+            permissionList = StpKit.SPACE.getPermissionList(loginUser.getId());
+        } else if (loginUser != null) {
+            permissionList = StpKit.SPACE.getPermissionList(loginUser.getId());
+        }
+        PictureVo pictureVo = pictureService.getPictureVo(picture, request);
+        pictureVo.setPermissionList(permissionList);
+        return ResultUtils.success(pictureVo);
     }
 
     @GetMapping("/tag_category")
@@ -168,6 +187,7 @@ public class PictureController {
      * 图片审核
      */
     @PostMapping("/reviewPicture")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> reviewPicture(@RequestBody PictureReviewRequest pictureQueryRequest,
                                                HttpServletRequest request) {
         UserLoginVo loginUser = userService.getLoginUser(request);
@@ -179,6 +199,7 @@ public class PictureController {
      * 通过url获取图片信息并上传图片返回图片信息
      */
     @PostMapping("/uploadByUrl")
+    @SaSpaceCheckPermission(SpaceUserPermissionConstant.PICTURE_UPLOAD)
     public BaseResponse<PictureVo> uploadPictureByUrl(@RequestBody UploadPictureRequest uploadPictureRequest, HttpServletRequest request) {
         UserLoginVo loginUser = userService.getLoginUser(request);
         ThrowUtils.throwIf(uploadPictureRequest == null || uploadPictureRequest.getUrl() == null, ErrorCode.PARAM_ERROR);
@@ -204,6 +225,7 @@ public class PictureController {
      * 批量修改图片
      */
     @PostMapping("/batchUpdatePicture")
+    @SaSpaceCheckPermission(SpaceUserPermissionConstant.PICTURE_EDIT)
     public BaseResponse<Integer> batchUpdatePicture(@RequestBody BatchUpdatePictureRequest batchUpdatePictureRequest, HttpServletRequest request) {
         UserLoginVo loginUser = userService.getLoginUser(request);
         Integer cnt = pictureService.batchUpdatePicture(batchUpdatePictureRequest, loginUser);

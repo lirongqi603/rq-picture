@@ -124,6 +124,7 @@ public class Picture implements Serializable {
     /**
      * 空间 id
      */
+    @TableField(value = "spaceId", insertStrategy = FieldStrategy.ALWAYS)
     private Long spaceId;
 
     /**

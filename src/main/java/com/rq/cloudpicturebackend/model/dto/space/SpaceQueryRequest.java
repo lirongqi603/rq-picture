@@ -59,6 +59,12 @@ public class SpaceQueryRequest extends PageRequest implements Serializable {
     @ApiModelProperty(value = "创建用户 id", position = 8)
     private Long userId;
 
+    /**
+     * 空间类型
+     */
+    @ApiModelProperty(value = "空间类型", position = 9)
+    private Integer spaceType;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 

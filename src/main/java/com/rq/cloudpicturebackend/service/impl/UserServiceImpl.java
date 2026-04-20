@@ -10,6 +10,7 @@ import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.enums.UserRoleEnum;
 import com.rq.cloudpicturebackend.exception.BusinessException;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
+import com.rq.cloudpicturebackend.manager.auth.StpKit;
 import com.rq.cloudpicturebackend.model.dto.user.*;
 import com.rq.cloudpicturebackend.model.entity.User;
 import com.rq.cloudpicturebackend.model.vo.UserInfoVo;
@@ -129,6 +130,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         UserLoginVo userLoginVo = BeanUtil.copyProperties(user, UserLoginVo.class);
         //保存登录态
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
+        StpKit.SPACE.login(user.getId());
+        StpKit.SPACE.getSession().set(USER_LOGIN_STATE, user);
         return userLoginVo;
     }
 
@@ -172,6 +175,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (request == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请求参数为空");
         }
+        User user = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        StpKit.SPACE.logout(user.getId());
         request.getSession().removeAttribute(USER_LOGIN_STATE);
     }
 

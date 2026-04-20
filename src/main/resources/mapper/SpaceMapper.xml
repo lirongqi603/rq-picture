@@ -8,6 +8,7 @@
         <id property="id" column="id" jdbcType="BIGINT"/>
         <result property="spaceName" column="spaceName" jdbcType="VARCHAR"/>
         <result property="spaceLevel" column="spaceLevel" jdbcType="INTEGER"/>
+        <result property="spaceType" column="spaceType" jdbcType="VARCHAR"/>
         <result property="maxSize" column="maxSize" jdbcType="BIGINT"/>
         <result property="maxCount" column="maxCount" jdbcType="BIGINT"/>
         <result property="totalSize" column="totalSize" jdbcType="BIGINT"/>
@@ -20,8 +21,8 @@
     </resultMap>
     <update id="calculateSpaceUsage">
         update space
-        set totalSize  = (select sum(picSize) from picture where spaceId = #{id} and isDelete = 0),
-            totalCount = (select count(*) from picture where spaceId = #{id} and isDelete = 0)
+        set totalSize  = (select sum(picSize) from picture_public where spaceId = #{id} and isDelete = 0),
+            totalCount = (select count(*) from picture_public where spaceId = #{id} and isDelete = 0)
         where id = #{id}
     </update>
 

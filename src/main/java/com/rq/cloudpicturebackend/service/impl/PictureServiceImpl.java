@@ -7,7 +7,6 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -17,10 +16,11 @@ import com.rq.cloudpicturebackend.api.aliyun.model.CreateTaskResponse;
 import com.rq.cloudpicturebackend.api.aliyun.model.QueryTaskResponse;
 import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.enums.ReviewStatusEnum;
-import com.rq.cloudpicturebackend.exception.BusinessException;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
 import com.rq.cloudpicturebackend.exception.ThrowUtils;
 import com.rq.cloudpicturebackend.manager.CosManager;
+import com.rq.cloudpicturebackend.manager.auth.SpaceUserAuthManager;
+import com.rq.cloudpicturebackend.manager.auth.StpKit;
 import com.rq.cloudpicturebackend.manager.upload.FileUploadPictureImpl;
 import com.rq.cloudpicturebackend.manager.upload.UploadPictureTemplate;
 import com.rq.cloudpicturebackend.manager.upload.UrlUploadPictureImpl;
@@ -72,6 +72,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     private CosManager cosManager;
     @Resource
     private ImageOutPaintingClient imageOutPaintingClient;
+    @Resource
+    private SpaceUserAuthManager spaceUserAuthManager;
 
     @Override
     public PictureVo uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, UserLoginVo loginUser, Boolean ignoreSize) {
@@ -88,11 +90,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             boolean exists = this.lambdaQuery().eq(Picture::getId, pictureId).exists();
             ThrowUtils.throwIf(!exists, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
         }
+        if (spaceId == null) {
+            spaceId = 0L;
+        }
         String uploadPathPrefix = String.format("public/%s", loginUser.getId());
-        if (spaceId != null && spaceId > 0) {
+        if (spaceId > 0) {
             Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
-            ThrowUtils.throwIf(!Objects.equals(space.getUserId(), loginUser.getId()) && !userService.isAdmin(loginUser), ErrorCode.NOT_AUTH_ERROR, "无权限操作");
+//            ThrowUtils.throwIf(!Objects.equals(space.getUserId(), loginUser.getId()) && !userService.isAdmin(loginUser), ErrorCode.NOT_AUTH_ERROR, "无权限操作");
             Long maxCount = space.getMaxCount();
             Long maxSize = space.getMaxSize();
             Long totalCount = space.getTotalCount();
@@ -109,7 +114,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         Picture picture = new Picture();
         picture.setUrl(uploadPictureResult.getUrl());
         picture.setThumbnailUrl(uploadPictureResult.getThumbnailUrl());
-        picture.setSpaceId(spaceId);
+        if (pictureId == null) {
+            picture.setSpaceId(spaceId);
+        }
         String picName = uploadPictureResult.getPicName();
         if (pictureUploadRequest != null) {
             String name = pictureUploadRequest.getName();
@@ -145,7 +152,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             transactionTemplate.execute(status -> {
                 boolean result = this.saveOrUpdate(picture);
                 ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
-                if (finalSpaceId != null) {
+                if (finalSpaceId > 0) {
                     spaceService.calculateSpaceUsage(finalSpaceId);
                 }
                 return true;
@@ -185,6 +192,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         picture.setTags(JSONUtil.toJsonStr(pictureUpdateRequest.getTags()));
         validPictureParam(picture);
         fullReviewInfo(picture, loginUser);
+        picture.setSpaceId(null);
         boolean result = this.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片更新失败");
         return true;
@@ -200,6 +208,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         ThrowUtils.throwIf(!oldPicture.getUserId().equals(loginUser.getId()) && UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole()), ErrorCode.NOT_AUTH_ERROR, "无权限编辑图片");
         picture.setEditTime(new Date());
         fullReviewInfo(picture, loginUser);
+        picture.setSpaceId(null);
         boolean result = this.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片编辑失败");
         return true;
@@ -278,7 +287,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             UserLoginVo loginUser = userService.getLoginUser(request);
             Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
-            ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NOT_AUTH_ERROR, "无权限访问该空间");
+//            ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NOT_AUTH_ERROR, "无权限访问该空间");
         } else {
             int pageSize = pictureQueryRequest.getPageSize();
             ThrowUtils.throwIf(pageSize > 100, ErrorCode.PARAM_ERROR, "每页记录数不能超过100");
@@ -290,8 +299,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
     }
 
     @Override
-    public PictureVo getPictureVo(Picture picture) {
-        ThrowUtils.throwIf(picture == null, ErrorCode.PARAM_ERROR);
+    public PictureVo getPictureVo(Picture picture, HttpServletRequest request) {
+        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
         PictureVo pictureVo = BeanUtil.copyProperties(picture, PictureVo.class);
         Long userId = picture.getUserId();
         if (userId != null && userId > 0) {
@@ -401,7 +410,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         ThrowUtils.throwIf(spaceId == null, ErrorCode.PARAM_ERROR, "空间ID不能为空");
         Space space = spaceService.getById(spaceId);
         ThrowUtils.throwIf(space == null, ErrorCode.PARAM_ERROR, "空间不存在");
-        ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser), ErrorCode.PARAM_ERROR, "没有权限修改图片");
+//        ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser), ErrorCode.PARAM_ERROR, "没有权限修改图片");
         String nameFormat = batchUpdatePictureRequest.getNameFormat();
         String category = batchUpdatePictureRequest.getCategory();
         List<String> tagList = batchUpdatePictureRequest.getTagList();
@@ -523,7 +532,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
             Boolean isPublic = pictureQueryRequest.getIsPublic();
             Long spaceId = pictureQueryRequest.getSpaceId();
             if (isPublic) {
-                queryWrapper.isNull(Picture::getSpaceId);
+                queryWrapper.eq(Picture::getSpaceId, 0L);
             } else if (spaceId != null) {
                 queryWrapper.eq(Picture::getSpaceId, spaceId);
             }

@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 @Data
 public class SpaceVo implements Serializable {
@@ -89,6 +90,15 @@ public class SpaceVo implements Serializable {
      */
     @ApiModelProperty(value = "用户信息", position = 12)
     private UserInfoVo userVo;
+
+    /**
+     * 空间类型：0-私有 1-团队
+     */
+    @ApiModelProperty(value = "空间类型：0-私有 1-团队", position = 13)
+    private Integer spaceType;
+
+    @ApiModelProperty(value = "权限列表", position = 14)
+    private List<String> permissionList;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

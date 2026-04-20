@@ -46,7 +46,7 @@ create table if not exists picture
     INDEX idx_userId (userId)              -- 提升基于用户 ID 的查询性能
 ) comment '图片' collate = utf8mb4_unicode_ci;
 
-ALTER TABLE picture
+ALTER TABLE picture_public
     -- 添加新列
     ADD COLUMN reviewStatus  INT DEFAULT 0 NOT NULL COMMENT '审核状态：0-待审核; 1-通过; 2-拒绝',
     ADD COLUMN reviewMessage VARCHAR(512)  NULL COMMENT '审核信息',
@@ -54,9 +54,9 @@ ALTER TABLE picture
     ADD COLUMN reviewTime    DATETIME      NULL COMMENT '审核时间';
 
 -- 创建基于 reviewStatus 列的索引
-CREATE INDEX idx_reviewStatus ON picture (reviewStatus);
+CREATE INDEX idx_reviewStatus ON picture_public (reviewStatus);
 
-ALTER TABLE picture
+ALTER TABLE picture_public
     -- 添加新列
     ADD COLUMN thumbnailUrl VARCHAR(512) NULL COMMENT '缩略图 url';
 
@@ -81,10 +81,30 @@ create table if not exists space
     index idx_spaceLevel (spaceLevel) -- 提升按空间级别查询的效率
 ) comment '空间' collate = utf8mb4_unicode_ci;
 
-ALTER TABLE picture
+ALTER TABLE picture_public
     -- 添加新列
     ADD COLUMN spaceId bigint NULL COMMENT '所属空间 ID';
 
-ALTER TABLE picture
+ALTER TABLE picture_public
     -- 添加新列
     ADD COLUMN picColor VARCHAR(50) NULL COMMENT '图片主题色';
+
+ALTER TABLE space
+    ADD COLUMN spaceType int default 0 not null comment '空间类型：0-私有 1-团队';
+
+CREATE INDEX idx_spaceType ON space (spaceType);
+
+-- 空间成员表
+create table if not exists space_user
+(
+    id         bigint auto_increment comment 'id' primary key,
+    spaceId    bigint                                 not null comment '空间 id',
+    userId     bigint                                 not null comment '用户 id',
+    spaceRole  varchar(128) default 'viewer'          null comment '空间角色：viewer/editor/admin',
+    createTime datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
+    updateTime datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    -- 索引设计
+    UNIQUE KEY uk_spaceId_userId (spaceId, userId), -- 唯一索引，用户在一个空间中只能有一个角色
+    INDEX idx_spaceId (spaceId),                    -- 提升按空间查询的性能
+    INDEX idx_userId (userId)                       -- 提升按用户查询的性能
+) comment '空间用户关联' collate = utf8mb4_unicode_ci;

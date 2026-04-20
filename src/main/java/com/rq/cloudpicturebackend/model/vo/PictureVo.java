@@ -167,6 +167,9 @@ public class PictureVo implements Serializable {
     private String picColor;
 
 
+    @ApiModelProperty(value = "权限列表", position = 24)
+    private List<String> permissionList;
+
     /**
      * 封装类转对象
      */
