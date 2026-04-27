@@ -94,4 +94,13 @@ public interface UserService extends IService<User> {
      */
     boolean isAdmin(UserLoginVo loginUser);
 
+    /**
+     * 编辑用户
+     *
+     * @param userEditRequest 编辑请求
+     * @param loginUser 登录用户
+     * @return 编辑结果
+     */
+    Boolean editUser(UserEditRequest userEditRequest, UserLoginVo loginUser);
+
 }

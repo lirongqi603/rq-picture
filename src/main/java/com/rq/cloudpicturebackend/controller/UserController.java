@@ -9,6 +9,7 @@ import com.rq.cloudpicturebackend.common.ResultUtils;
 import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.exception.BusinessException;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
+import com.rq.cloudpicturebackend.exception.ThrowUtils;
 import com.rq.cloudpicturebackend.model.dto.user.*;
 import com.rq.cloudpicturebackend.model.entity.User;
 import com.rq.cloudpicturebackend.model.vo.UserInfoVo;
@@ -106,5 +107,13 @@ public class UserController {
     public BaseResponse<UserInfoVo> getInfo(@PathVariable("id") Long id) {
         UserInfoVo vo = userService.getUserInfoById(id);
         return ResultUtils.success(vo);
+    }
+
+    @PostMapping("/edit")
+    public BaseResponse<Boolean> edit(@RequestBody UserEditRequest userEditRequest, HttpServletRequest request) {
+        UserLoginVo loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "未登录");
+        Boolean result = userService.editUser(userEditRequest, loginUser);
+        return ResultUtils.success(result);
     }
 }

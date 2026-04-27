@@ -90,7 +90,7 @@ public class StpInterfaceImpl implements StpInterface {
         //5.1操作团队空间用户，只允许空间管理员操作
         Long spaceUserId = authContext.getSpaceUserId();
         if (ObjUtil.isNotNull(spaceUserId)) {
-            if(loginUser == null){
+            if (loginUser == null) {
                 return emptyList;
             }
             SpaceUser spaceUser = spaceUserService.getById(spaceUserId);
@@ -109,7 +109,7 @@ public class StpInterfaceImpl implements StpInterface {
         //5.2操作团队空间，只允许空间管理员和编辑操作，操作私有空间只允许本人操作
         Long spaceId = authContext.getSpaceId();
         if (ObjUtil.isNotNull(spaceId)) {
-            if(loginUser == null){
+            if (loginUser == null) {
                 return emptyList;
             }
             Space space = spaceService.getById(spaceId);
@@ -148,7 +148,7 @@ public class StpInterfaceImpl implements StpInterface {
             Picture picture = pictureService.getById(pictureId);
             ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
             Long sid = picture.getSpaceId();
-            if (sid == null) {
+            if (sid == null || sid <= 0) {
                 //如果spaceId为空，则表示该图片为公共图库
                 if (loginUser != null && picture.getUserId().equals(loginUser.getId())) {
                     return PRIVATE_PERMISSION;

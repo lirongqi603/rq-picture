@@ -158,7 +158,7 @@ public class PictureController {
 
         }
         List<String> permissionList = new ArrayList<>();
-        if (spaceId != null) {
+        if (spaceId > 0) {
             Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "未登录");
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");

@@ -90,7 +90,6 @@ public class FileController {
      * 用户头像上传接口
      */
     @PostMapping("/uploadAvatar")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<String> uploadAvatar(@RequestPart(value = "file") MultipartFile multipartFile, HttpServletRequest request) {
         if (multipartFile == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "文件为空");

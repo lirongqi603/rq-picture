@@ -10,6 +10,7 @@ import com.rq.cloudpicturebackend.constant.UserConstant;
 import com.rq.cloudpicturebackend.enums.UserRoleEnum;
 import com.rq.cloudpicturebackend.exception.BusinessException;
 import com.rq.cloudpicturebackend.exception.ErrorCode;
+import com.rq.cloudpicturebackend.exception.ThrowUtils;
 import com.rq.cloudpicturebackend.manager.auth.StpKit;
 import com.rq.cloudpicturebackend.model.dto.user.*;
 import com.rq.cloudpicturebackend.model.entity.User;
@@ -23,6 +24,8 @@ import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+
+import java.util.Objects;
 
 import static com.rq.cloudpicturebackend.constant.UserConstant.USER_LOGIN_STATE;
 
@@ -245,6 +248,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public boolean isAdmin(UserLoginVo loginUser) {
         return loginUser != null && UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
+    }
+
+    @Override
+    public Boolean editUser(UserEditRequest userEditRequest, UserLoginVo loginUser) {
+        ThrowUtils.throwIf(userEditRequest == null, ErrorCode.PARAM_ERROR, "请求参数为空");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "未登录");
+        Long id = userEditRequest.getId();
+        ThrowUtils.throwIf(!Objects.equals(id, loginUser.getId()), ErrorCode.NOT_AUTH_ERROR);
+        User user = BeanUtil.copyProperties(userEditRequest, User.class);
+        boolean result = this.updateById(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "修改失败");
+        return true;
     }
 
     /**
